@@ -1,0 +1,13 @@
+.claude/
+.vscode/
+Junk/
+Output/
+__pycache__/
+*.pyc
+exports/
+*.log
+.env
+node_modules/
+dist/
+build/
+.ipynb_checkpoints/

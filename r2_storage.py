@@ -7,6 +7,12 @@ import os
 import time
 import logging
 from typing import Optional, List, Dict
+import collections
+try:
+    if not hasattr(collections, 'Callable'):
+        collections.Callable = collections.abc.Callable
+except Exception:
+    pass
 
 import boto3
 from botocore.config import Config
@@ -83,6 +89,53 @@ class R2Client:
                     time.sleep(2 ** attempt)
 
         return False
+
+    def upload_json(self, bucket_key: str, data: dict, max_retries: int = 3) -> bool:
+        """Upload a dict as JSON to R2 without needing a temp file."""
+        import json as _json
+        body = _json.dumps(data).encode('utf-8')
+        for attempt in range(1, max_retries + 1):
+            try:
+                self.s3.put_object(
+                    Bucket=self.bucket_name,
+                    Key=bucket_key,
+                    Body=body,
+                    ContentType='application/json',
+                )
+                return True
+            except Exception as e:
+                print(f"[R2] JSON upload attempt {attempt}/{max_retries}: {e}")
+                if attempt < max_retries:
+                    time.sleep(2 ** attempt)
+        return False
+
+    def file_exists(self, bucket_key: str) -> bool:
+        """Check if an object exists in the bucket."""
+        try:
+            self.s3.head_object(Bucket=self.bucket_name, Key=bucket_key)
+            return True
+        except Exception:
+            return False
+
+    def delete_object(self, bucket_key: str) -> bool:
+        """Delete an object from R2."""
+        try:
+            self.s3.delete_object(Bucket=self.bucket_name, Key=bucket_key)
+            print(f"[R2] Deleted {bucket_key}")
+            return True
+        except Exception as e:
+            print(f"[R2] Failed to delete {bucket_key}: {e}")
+            return False
+
+    def download_json(self, bucket_key: str) -> dict:
+        """Download and parse a JSON file from R2. Returns empty dict on failure."""
+        import json as _json
+        try:
+            resp = self.s3.get_object(Bucket=self.bucket_name, Key=bucket_key)
+            body = resp['Body'].read()
+            return _json.loads(body)
+        except Exception:
+            return {}
 
     def download_file(self, bucket_key: str, local_path: str, max_retries: int = 3,
                       progress_callback=None) -> bool:
