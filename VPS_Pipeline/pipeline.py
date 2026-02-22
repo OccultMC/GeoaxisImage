@@ -339,7 +339,7 @@ GPU_INIT_TIMEOUT = int(os.environ.get('GPU_INIT_TIMEOUT', '300'))  # 5 min defau
 class GpuExtractor:
     def __init__(self):
         t0 = time.time()
-        watchdog = _InitWatchdog(GPU_INIT_TIMEOUT + 30, "gpu_init_overall")
+        watchdog = _InitWatchdog(GPU_INIT_TIMEOUT * 2 + 120, "gpu_init_overall")
         watchdog.start()
 
         try:
